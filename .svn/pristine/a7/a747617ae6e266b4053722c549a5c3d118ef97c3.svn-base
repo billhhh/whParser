@@ -1,0 +1,165 @@
+package com.DBOperation;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Map;
+
+import com.mysql.jdbc.Statement;
+
+public class DBOperation {
+	
+	Connection conn;
+	String dbname = "jdbc:mysql://localhost:3306/whrsdbtest";
+	String user = "root";
+	String password = "root";
+	String sql;
+	Statement stmt;
+	
+	//1、构造函数，就是得到数据库连接
+	public DBOperation(){
+		try{
+			Class.forName("com.mysql.jdbc.Driver");
+			this.conn = DriverManager.getConnection(dbname,user,password);
+		}catch(SQLException e){
+			System.out.println("数据库连接失败");
+		}catch(ClassNotFoundException e){
+			e.printStackTrace();
+		}
+	}
+	
+	
+	
+	
+	/* 
+	 * 2、将商品URL的ArrayList插入数据库
+	 * */
+	public void insertUrlList(String tablename,ArrayList<String> arrayList)throws SQLException{
+		
+		for(String urlStr : arrayList){
+			/*ignore在某些主键primary约束中避免错误的重复插入*/
+			sql = "insert ignore into "+tablename+"(url) values(\"" + urlStr + "\");";
+			System.out.println("sql == "+sql);
+			
+//			stmt = (Statement)conn.createStatement();
+//			stmt.executeUpdate(sql);
+		}
+	}
+	
+	
+	
+	/* @param:null
+	 * 3、返回数据库记录条数*/
+	public int getRecordNum(){
+		int recordNum = 0;
+		sql = "select count(*) from dangdangUrlCache;";
+		try{
+			 stmt = (Statement)conn.createStatement();
+			 ResultSet rs= stmt.executeQuery(sql);
+			 if(rs.next()){
+				 recordNum = rs.getInt(1);
+			 }
+			 }catch(Exception e){
+				 System.out.println(e.getMessage());
+			 }
+		return recordNum;
+	}
+	
+	
+	//4、返回行数
+	public ArrayList<String> getRows(int pageSize,int first){
+		ArrayList<String> rows = new ArrayList<String>();
+		sql = "select * from dangdangUrlCache limit " + first + "," + pageSize + ";" ;
+		try{
+			stmt = (Statement)conn.createStatement();
+			ResultSet rs = stmt.executeQuery(sql);
+			while(rs.next()){
+				rows.add(rs.getString(1));
+			}
+		}catch(Exception e){
+			System.out.println(e.getMessage());
+		}
+		return rows;
+	}
+	
+	
+	
+	/* author:Bill
+	 * 5、将【商品详情】映射并写入数据库
+	 * */
+	public void DBmapping(String link,Map<String, String> map)
+	{
+		//定义变量
+		String goodsId = null;
+		String innerMaterial=null;
+		String price=null;
+		String brand=null;
+		String hotPoint=null;
+		String upperMaterial=null;
+		String style=null;
+		String heelStyle = null;
+		String fashion=null;
+		String upperHeight=null;
+		String heelHeight=null;
+		String toe=null;
+		String occasion=null;
+		String season=null;
+		String pattern=null;
+		
+		//link和map都传送过来，准备进行数据库写操作
+		for(String s:map.keySet()){
+			if(s.equals("型号"))
+				goodsId = map.get(s);
+			
+			else if(s.equals("内里材质"))
+				innerMaterial = map.get(s);
+			
+			else if(s.equals("price"))
+			{
+				price = map.get(s);
+//				System.out.println(price);   //ok
+			}
+			
+			else if(s.equals("品牌"))
+				brand = map.get(s);
+			
+			else if(s.equals("类型"))
+				hotPoint = map.get(s);
+			
+			else if(s.equals("鞋面材质") || s.equals("材质"))
+				upperMaterial = map.get(s);
+			
+			else if(s.equals("风格"))
+				style = map.get(s);
+			
+			else if(s.equals("跟型"))
+				heelStyle = map.get(s);
+			
+			else if(s.equals("流行元素"))
+				fashion = map.get(s);
+			
+			else if(s.equals("单鞋开口"))
+				upperHeight = map.get(s);
+			
+			else if(s.equals("跟高"))
+				heelHeight = map.get(s);
+			
+			else if(s.equals("女鞋头款"))
+				toe = map.get(s);
+			
+			else if(s.equals("场合"))
+				occasion = map.get(s);
+			
+			else if(s.equals("季节"))
+				season = map.get(s);
+			
+			else if(s.equals("图案"))
+				pattern = map.get(s);
+		}
+		
+	}
+	
+	
+}

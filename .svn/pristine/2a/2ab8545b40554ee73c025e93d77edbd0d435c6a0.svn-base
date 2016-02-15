@@ -1,0 +1,26 @@
+//主要存放爬虫爬到的字段和数据库表的映射关系
+
+package com.DBOperation;
+import java.util.HashMap;
+import java.util.Map;
+
+public class DatabaseMap {
+
+//	public final static String url = "jdbc:mysql://localhost:3306/rsdb";
+	
+	
+	//映射并写入数据库
+	public void DBmapping(String link,Map<String, String> map)
+	{
+		
+		//output test
+//		System.out.println(link);  //打印链接
+//		for(String s:map.keySet()){
+//			//输出属性和属性值，所有每一轮爬到的商品都在【s】映射表里面
+//			System.out.println(s + "    " + map.get(s));
+//		}
+//		System.out.println();
+	}
+	
+	
+}

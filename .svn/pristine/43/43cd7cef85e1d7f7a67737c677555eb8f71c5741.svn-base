@@ -1,0 +1,290 @@
+package com.DBOperation;
+
+import java.io.UnsupportedEncodingException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Map;
+
+import com.mysql.jdbc.Statement;
+
+public class DBOperation {
+	
+	Connection conn=null;
+	String dbname = "jdbc:mysql://localhost:3306/whrsdbtest?useUnicode=true&characterEncoding=utf8";
+	String user = "root";
+	String password = "root";
+	String sql=null;
+	Statement stmt=null;
+	ResultSet rs=null;
+	
+	//1、构造函数，就是得到数据库连接
+	public DBOperation(){
+		try{
+			Class.forName("com.mysql.jdbc.Driver");
+			this.conn = DriverManager.getConnection(dbname,user,password);
+		}catch(SQLException e){
+			System.out.println("数据库连接失败");
+		}catch(ClassNotFoundException e){
+			e.printStackTrace();
+		}
+	}
+	
+	/* author:Bill
+	 * 将【商品详情】映射并写入数据库
+	 * */
+	public void DBmapping(String link,Map<String, String> map)
+	{
+		//定义变量
+		String goodsId = null;
+		String innerMaterial=null;
+		String price=null;
+		String brand=null;
+		String hotPoint=null;
+		String upperMaterial=null;
+		String style=null;
+		String heelStyle = null;
+		String fashion=null;
+		String upperHeight=null;
+		String heelHeight=null;
+		String toe=null;
+		String occasion=null;
+		String season=null;
+		String pattern=null;
+		
+		for(String s:map.keySet()){
+			//先插入主键，后面方便更新
+			if(s.equals("型号"))
+				goodsId = map.get(s);
+			else
+				continue;
+			
+			if(goodsId == null)
+			{
+				System.out.println("找不到主键，出错了！！");
+				return ;		//找不到主键，出错
+			}
+			
+			try {
+				//conn.setAutoCommit(false);//取消自动提交
+				
+				sql = "insert into shoes(goods_id) values(\"" + goodsId + "\");";
+				
+				if(stmt == null)
+					stmt = (Statement)conn.createStatement();
+				stmt.addBatch(sql);
+				sql = "insert into shoes_detail(goods_id) values(\"" + goodsId + "\");";
+				stmt.addBatch(sql);
+				
+				//执行批处理语句  
+//			   stmt.executeBatch();
+			   //如果没有异常，则执行此段代码  
+			   //提交事务，真正向数据库中提交数据 
+//			   conn.commit();
+			   System.out.println("goods_id插入成功！！");
+			} catch (Exception e) {
+				
+				System.out.println("goods_id插入失败。。");
+				e.printStackTrace();
+			   //将数据回滚  
+			   try{
+			      conn.rollback();
+			   }catch(Exception e1){  
+			   }
+				// TODO: handle exception
+			}finally{
+				//this.close();		//这里不应当就close，否则后面不能用连接了
+			}
+		}//第一个for结束
+		
+		
+		
+		
+		//因为已有主键，正式写入数据库
+//		System.out.println(link);
+		//link和map都传送过来，准备进行数据库写操作
+		for(String s:map.keySet()){
+			
+			if(s.equals("内里材质")){
+				//多对多
+				innerMaterial = map.get(s);
+				this.writeDBnTon(goodsId,innerMaterial,"inner_material","shoes_inner_material",
+						"inner_material_id","inner_material_name","shoes_inner_material_id");
+			}
+			
+			else if(s.equals("price")){
+				//这个要存入online_store表，顺便存入link，这个表有点特殊，必须单独存
+				price = map.get(s);
+				
+				//因为URL做主键，直接插入即可
+				sql = "insert into online_store(online_url,goods_id,price) values(\""+link+"\","+goodsId+","+price+");";
+				//System.out.println(sql);
+				try {
+					stmt.executeUpdate(sql);
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			else if(s.equals("品牌"))
+				brand = map.get(s);
+			
+			else if(s.equals("类型"))
+				hotPoint = map.get(s);
+			
+			else if(s.equals("鞋面材质") || s.equals("材质"))
+				upperMaterial = map.get(s);
+			
+			else if(s.equals("风格"))
+				style = map.get(s);
+			
+			else if(s.equals("跟型"))
+				heelStyle = map.get(s);
+			
+			else if(s.equals("流行元素"))
+				fashion = map.get(s);
+			
+			else if(s.equals("单鞋开口"))
+				upperHeight = map.get(s);
+			
+			else if(s.equals("跟高"))
+				heelHeight = map.get(s);
+			
+			else if(s.equals("女鞋头款"))
+				toe = map.get(s);
+			
+			else if(s.equals("场合"))
+				occasion = map.get(s);
+			
+			else if(s.equals("季节"))
+				season = map.get(s);
+			
+			else if(s.equals("图案"))
+				pattern = map.get(s);
+			
+		}
+		
+	}
+	
+	
+	
+	
+	
+	//处理n对n关系的表
+	private void writeDBnTon(String goodsId,String content,
+			String entityTableName,String relationTableName,
+			String entityIdName,String entityName,String relationIdName) {
+		//专门用来处理多对多关系的函数，参数分别为   1、goodsId 2、要插入到实体表中的内容【重要！！一个map】
+		//3、实体表和关系表名	4、实体id名和实体名       5、关系表Id名
+		
+		//如果为空，创建一个Statement
+		try {
+			if(stmt == null)
+				stmt = (Statement)conn.createStatement();
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		//将content的多个内容拆开
+		String s[] = content.split(" 　");
+		
+		
+		int entityId=-1;
+		int relationId=-1;
+		for (int i = 0; i < s.length; i++) {
+			
+			try {
+				//查询是否已经存在
+				sql = "SELECT "+entityIdName+" FROM "+entityTableName+" where "+entityName+" = \"" + s[i] + "\";";
+				//System.out.println(sql);
+				
+				rs = stmt.executeQuery(sql);
+				
+				//如果已存在，直接找出实体Id
+				if(rs.next()){
+	    			//请注意，一定要rs.next()，不然就差不到getInt    			
+					entityId=rs.getInt(1);
+					//System.out.println("已存在实体id == "+entityId);
+	    		}else{
+	    			//如果不存在，插入实体表
+					sql = "insert into "+entityTableName+"("+entityName+") values(\"" + s[i] + "\");";
+					//System.out.println("实体表没有记录: "+sql);
+					stmt.executeUpdate(sql);
+					
+					//插入后找实体Id
+					rs = stmt.executeQuery("SELECT MAX("+entityIdName+") from "+entityTableName+";");
+					if(rs.next())
+						entityId=rs.getInt(1);
+					//System.out.println("插入后实体id == " + entityId);
+	    		}
+				
+				
+				
+				//插入关系表
+				//查询是否已经存在
+				sql = "SELECT "+relationIdName+" FROM "+relationTableName+" where "+entityIdName+" = \"" + entityId + "\" and goods_id = "+goodsId+";";
+				//System.out.println(sql);
+				
+				rs = stmt.executeQuery(sql);
+				//如果已存在，直接找出关系表Id
+				if(rs.next()){
+					relationId=rs.getInt(1);
+					//System.out.println("已存在关系表id == "+relationId);
+	    		}else{
+	    			//如果不存在，插入关系表
+	    			sql = "insert into "+relationTableName+"(goods_id,"+entityIdName+") values("+ goodsId + ","+ + entityId + ");";
+					System.out.println("关系表没有记录: "+sql);
+					stmt.executeUpdate(sql);
+					
+					//插入后找实体Id
+					rs = stmt.executeQuery("SELECT MAX("+entityIdName+") from "+entityTableName+";");
+					if(rs.next())
+						relationId=rs.getInt(1);
+					//System.out.println("插入后 关系表id == " + relationId);
+	    		}
+				
+				
+				
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}//try-catch
+			
+		}//for
+		
+		
+	}
+	
+	
+	//关闭资源函数
+	private void close(){
+		try {
+			if(rs!=null){
+				
+				rs.close();
+				rs=null;
+			}
+			
+			if(stmt!=null){
+				
+				stmt.close();
+				stmt=null;
+			}
+			
+			if(!conn.isClosed()){
+				conn.close();
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+	}
+	
+	
+}

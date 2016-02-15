@@ -1,0 +1,141 @@
+package com.main;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.http.client.ClientProtocolException;
+import org.htmlparser.util.ParserException;
+
+
+import com.DBOperation.DBOperation;
+import com.Parser.*;
+
+public class test {
+
+	
+	//main函数
+	public static void main(String[] args) throws ClientProtocolException, IOException, ParserException, SQLException {
+		String url = "http://category.dangdang.com/cid4001867.html";
+		String link = "http://category.dangdang.com/cid4001867-a1%3A2037.html";
+		insertProLinkToDB(url);
+	}
+	
+	
+	
+	public static void insertProLinkToDB(String url) throws ClientProtocolException, IOException, ParserException, SQLException{
+		Map<String, String> map = new HashMap<String, String>(); //临时存放品牌 Url 的 hash表。。
+		ArrayList<String> list = new ArrayList<String>();   
+		ArrayList<String> brandlist = new ArrayList<String>();  //品牌list
+		String nextpage = null;
+		int pagenum = 0;
+		int brandpagenum = 0;
+		
+		DBOperation dbo = new DBOperation();
+		
+		parsePage_Brand pB = new parsePage_Brand(url);
+		parsePage_ProLink pP;
+		map = pB.getBrandUrlMap();
+		
+			
+		for(String brandUrl:map.keySet()){
+			//将 map 中的brandUrl放入 brandlist中
+			brandlist.add(brandUrl);
+			
+			//ok
+			//System.out.println(brandUrl);
+		}
+		
+		
+		//遍历 brandlist
+		for(String s:brandlist){
+			//遍历赋值给下一页
+			nextpage = s;
+			//test ok
+			System.out.println("中途输出nextpage测试："+nextpage);
+			
+			//nextpage中存的是brand
+			while(!nextpage.equals("end")){
+				
+				pP = new parsePage_ProLink(nextpage);  //爬下一页的内容
+				list = pP.getUrlList();  //每页brand的鞋子链接
+				
+				System.out.println("list的size："+list.size());
+				
+				//下面这句是插入数据库，要有 dangdangUrlCache 表
+				//dbo.insertUrlList("dangdangUrlCache", list);
+				list.clear();
+				nextpage = pP.getNextPage();  //getNextPage是找到brand还有就继续while
+				pagenum++;
+				brandpagenum++;
+			}
+			
+			System.out.println("this brand have "+ brandpagenum +" page");
+			brandpagenum = 0;//每个brand的num
+		}
+		
+		System.out.println("end crawler.");
+		System.out.println(pagenum);
+	}
+	
+	
+	/*
+	 * 测试获取商品详情函数*/
+	public static void testParseProDetail(String link) throws ClientProtocolException, IOException, ParserException{
+		Map<String, String> map = new HashMap<String, String>();
+		parseProDetail pPD = new parseProDetail(link);
+		map = pPD.getDetailListMap();
+		for(String s:map.keySet()){
+			System.out.println(s + "    " + map.get(s));
+		}
+	}
+	
+	
+	/*
+	 * 测试获取所有品牌网址函数*/
+	public static void testParsePage_Brand(String url) throws ClientProtocolException, IOException, ParserException{
+		parsePage_Brand p = new parsePage_Brand(url);
+		Map<String, String> map = new HashMap<String, String>();
+		map = p.getBrandUrlMap();
+		for(String key:map.keySet()){
+			System.out.println(key + "  " + map.get(key));
+		}
+	}
+	
+	
+	/*测试获取页面所有鞋子链接函数*/
+	public static void testParsePage_ProLink() throws ClientProtocolException, IOException, ParserException{
+		String url = "http://category.dangdang.com/cid4001867-a1%3A2037-pg2.html";
+		List<String> l = new ArrayList<String>();
+		parsePage_ProLink p = new parsePage_ProLink(url);
+		l = p.getUrlList();
+		int i = 0;
+		for(String u:l){
+			System.out.println(u);
+			i++;
+		}
+		System.out.println("共有："+i+"条记录。");
+	}
+}
+
+
+/*
+for(声明循环变量 : 数组名)
+ { 
+ 	...
+ }
+ 
+如：
+ char b[]={'a','b','c','d'};
+ for(char ch : b)
+ {
+  System.out.println(ch);//打印出数组b中的元素
+ }
+ 
+ foreach的语句格式：for(元素类型t 元素变量x : 遍历对象obj)
+ 
+ 并不一定要是数组，一些集合类也可以用这种方法输出，比如List，ArrayList，Set等
+*/
